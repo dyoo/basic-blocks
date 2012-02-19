@@ -69,7 +69,7 @@
                          (rest stmts-to-see))])]
                [else
                 (loop leaders
-                      (append named-targets (cons (first stmts-to-see) stmts-seen/rev))
+                      (cons (first stmts-to-see) stmts-seen/rev)
                       (rest stmts-to-see))])]
         [else
          (loop leaders 
@@ -81,6 +81,7 @@
   (let-values ([(leaders stmts)
                 (find/inject-leaders)])
 
+    
     ;; leader?: stmt -> boolean
     ;; Returns true if the statement is a leader.
     (define (leader? stmt)
@@ -112,7 +113,9 @@
         [else
          (loop bblocks 
                pending-block-name 
-               (cons (first stmts) pending-stmts/rev)
+               ;; Omit dead labels.
+               (if (label? (first stmts)) pending-stmts/rev 
+                   (cons (first stmts) pending-stmts/rev))
                (rest stmts))]))))
 
   

@@ -28,3 +28,21 @@
                       (goto entry)))
               '((entry
                  (goto entry))))
+
+(check-equal? (frac '(entry
+                      (goto entry)
+                      dead-label))
+              '((entry
+                 (goto entry))))
+
+(check-equal? (frac '(entry
+                      (goto (reg v))
+                      dead-label))
+              '((entry
+                 (goto (reg v)))))
+
+(check-equal? (frac '(entry
+                      dead-label
+                      (goto entry)))
+              '((entry
+                 (goto entry))))
