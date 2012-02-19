@@ -16,7 +16,8 @@
                        preds ;; (listof bblock DYNAMIC)
                        succs ;; (listof bblock DYNAMIC)
                        aux   ;; any
-                       ) #:mutable)
+                       )
+  #:mutable)
 
 
 (define-struct next-jump ())
@@ -58,9 +59,9 @@
                 (cond
                   [(or (empty? (rest stmts-to-see))
                        (not (label? (second stmts-to-see))))
-                   (define fresh (fresh-label))
-                   (loop (append named-targets (cons (label-name fresh) leaders))
-                         (cons fresh (cons (first stmts-to-see) stmts-seen/rev))
+                   (define fresh-stmt (fresh-label))
+                   (loop (append named-targets (cons (label-name fresh-stmt) leaders))
+                         (cons fresh-stmt (cons (first stmts-to-see) stmts-seen/rev))
                          (rest stmts-to-see))]
                   [else
                    (loop (append named-targets leaders)
@@ -76,22 +77,45 @@
                (rest stmts-to-see))])))
 
   
+  ;; Main loop.  Watch for leaders.
   (let-values ([(leaders stmts)
                 (find/inject-leaders)])
-  
+
+    ;; leader?: stmt -> boolean
+    ;; Returns true if the statement is a leader.
+    (define (leader? stmt)
+      (and (label? stmt) (set-member? leaders (label-name stmt))))
+    
     (let loop ([bblocks '()]
                [pending-block-name (label-name (first stmts))]
                [pending-stmts/rev (first stmts)]
-               
                [stmts (rest stmts)])
       (cond
         [(empty? stmts)
-         ...]
-        [(label? (first stmts))
-         ...]))))
+         (reverse (cons (make-bblock pending-block-name
+                                     (reverse pending-stmts/rev)
+                                     '()
+                                     '()
+                                     #f)
+                        bblocks))]
+        [(leader? (first stmts))
+         (loop (cons (make-bblock pending-block-name
+                                  (reverse pending-stmts/rev)
+                                  '()
+                                  '()
+                                  #f)
+                     bblocks)
+               (label-name (first stmts))
+               (first stmts)
+               (rest stmts))]
+        
+        [else
+         (loop bblocks 
+               pending-block-name 
+               (cons (first stmts) pending-stmts/rev)
+               (rest stmts))]))))
+
   
-
-
 ;; Make sure we get a good list of statements for fracture.
 (define (check-good-stmts! stmts label?)
   (match stmts
