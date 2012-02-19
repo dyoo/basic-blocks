@@ -46,3 +46,16 @@
                       (goto entry)))
               '((entry
                  (goto entry))))
+
+
+
+(check-equal? (frac '(entry
+                      (blah)
+                      (baz)
+                      (if something goto entry)
+                      after))
+              '((entry
+                 (blah)
+                 (baz)
+                 (if something goto entry))
+                (after)))

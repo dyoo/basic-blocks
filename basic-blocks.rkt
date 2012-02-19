@@ -39,49 +39,12 @@
                   #:jump-targets (jump-targets default-jump-targets))
   (check-good-stmts! stmts label?)
 
-  ;; find/inject-leaders: -> (values (setof symbol) (listof stmt))
-  ;; Preprocesses the statements and computes leaders, and injects them if necessary.
-  (define (find/inject-leaders)
-    (let loop ([leaders (cons (label-name (first stmts)) entry-names)]
-               [stmts-seen/rev (list (first stmts))]
-               [stmts-to-see (rest stmts)])
-      (cond
-        [(empty? stmts-to-see)
-         (values (list->set leaders) (reverse stmts-seen/rev))]
-        [(jump? (first stmts-to-see))
-         (define targets (jump-targets (first stmts-to-see)))
-         (define named-targets
-           (filter (lambda (t)
-                     (and (not (eq? t NEXT))
-                          (not (eq? t DYNAMIC-JUMP))))
-                   targets))
-         (cond [(member NEXT targets)
-                (cond
-                  [(or (empty? (rest stmts-to-see))
-                       (not (label? (second stmts-to-see))))
-                   (define fresh-stmt (fresh-label))
-                   (loop (append named-targets (cons (label-name fresh-stmt) leaders))
-                         (cons fresh-stmt (cons (first stmts-to-see) stmts-seen/rev))
-                         (rest stmts-to-see))]
-                  [else
-                   (loop (append named-targets leaders)
-                         (cons (first stmts-to-see) stmts-seen/rev)
-                         (rest stmts-to-see))])]
-               [else
-                (loop leaders
-                      (cons (first stmts-to-see) stmts-seen/rev)
-                      (rest stmts-to-see))])]
-        [else
-         (loop leaders 
-               (cons (first stmts-to-see) stmts-seen/rev)
-               (rest stmts-to-see))])))
-
   
   ;; Main loop.  Watch for leaders.
   (let-values ([(leaders stmts)
-                (find/inject-leaders)])
+                (find/inject-leaders stmts entry-names jump? jump-targets
+                                     label? label-name fresh-label)])
 
-    
     ;; leader?: stmt -> boolean
     ;; Returns true if the statement is a leader.
     (define (leader? stmt)
@@ -126,7 +89,46 @@
      (void)]
     [else
      (raise-type-error 'fracture "nonempty list of statements beginning with a label" stmts)]))
-  
+
+
+
+;; find/inject-leaders: -> (values (setof symbol) (listof stmt))
+;; Preprocesses the statements and computes leaders, and injects them if necessary.
+(define (find/inject-leaders stmts entry-names jump? jump-targets label? label-name fresh-label)
+  (let loop ([leaders (cons (label-name (first stmts)) entry-names)]
+             [stmts-seen/rev (list (first stmts))]
+             [stmts-to-see (rest stmts)])
+    (cond
+      [(empty? stmts-to-see)
+       (values (list->set leaders) (reverse stmts-seen/rev))]
+      [(jump? (first stmts-to-see))
+       (define targets (jump-targets (first stmts-to-see)))
+       (define named-targets
+         (filter (lambda (t)
+                   (and (not (eq? t NEXT))
+                        (not (eq? t DYNAMIC-JUMP))))
+                 targets))
+       (cond [(member NEXT targets)
+              (cond
+                [(or (empty? (rest stmts-to-see))
+                     (not (label? (second stmts-to-see))))
+                 (define fresh-stmt (fresh-label))
+                 (loop (append named-targets (cons (label-name fresh-stmt) leaders))
+                       (cons fresh-stmt (cons (first stmts-to-see) stmts-seen/rev))
+                       (rest stmts-to-see))]
+                [else
+                 (loop (cons (second stmts-to-see) (append named-targets leaders))
+                       (cons (first stmts-to-see) stmts-seen/rev)
+                       (rest stmts-to-see))])]
+             [else
+              (loop leaders
+                    (cons (first stmts-to-see) stmts-seen/rev)
+                    (rest stmts-to-see))])]
+      [else
+       (loop leaders 
+             (cons (first stmts-to-see) stmts-seen/rev)
+             (rest stmts-to-see))])))
+
 
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
