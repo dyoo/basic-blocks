@@ -96,14 +96,41 @@
                           consequent
                           (now do something else)))
               (list (make-bblock 'entry
+                                 #t
                                  '(entry
                                    (blah)
                                    (baz)
                                    (if something goto entry))
-                                 (set 'entry 'consequent)
-                                 #f)
+                                 (set 'entry 'consequent))
                     (make-bblock 'consequent
+                                 #f
                                  '(consequent
                                    (now do something else))
-                                 (set)
-                                 #f)))
+                                 (set))))
+
+
+(check-equal? (fracture '(entry
+                          (if (= n 0) goto end)
+                          consequent
+                          (<- acc (* acc n))
+                          (<- n (sub1 n))
+                          (goto entry)
+                          end
+                          (goto (reg return))))
+              (list (make-bblock 'entry
+                                 #t
+                                 '(entry
+                                   (if (= n 0) goto end))
+                                 (set 'end 'consequent))
+                    (make-bblock 'consequent
+                                 #f
+                                 '(consequent
+                                   (<- acc (* acc n))
+                                   (<- n (sub1 n))
+                                   (goto entry))
+                                 (set 'entry))
+                    (make-bblock 'end
+                                 #f
+                                 '(end
+                                   (goto (reg return)))
+                                 (set DYNAMIC-JUMP))))

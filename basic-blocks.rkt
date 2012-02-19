@@ -2,7 +2,8 @@
 
 (require racket/match 
          racket/set
-         racket/list)
+         racket/list
+         racket/shared)
 
 (provide NEXT
          DYNAMIC-JUMP
@@ -11,13 +12,15 @@
 
 
 ;; Basic blocks
-(define-struct bblock (name  ;; symbol
-                       stmts ;; (listof stmt)
-                       succs ;; (setof target)
-                       aux   ;; any
+(define-struct bblock (name   ;; symbol
+                       entry? ;; boolean
+                       stmts  ;; (listof stmt)
+                       succs  ;; (setof (U symbol DYNAMIC-JUMP))
                        )
-  #:mutable
   #:transparent)
+
+  
+
 
 
 (define-struct next-jump ())
@@ -40,7 +43,8 @@
 
   
   ;; Main loop.  Watch for leaders.
-  (let-values ([(leaders stmts)
+  (let-values ([(entry-names-set) (list->set (cons (label-name (first stmts)) entry-names))]
+               [(leaders stmts)
                 (find/inject-leaders stmts entry-names jump? jump-targets
                                      label? label-name fresh-label)])
 
@@ -57,15 +61,15 @@
       (cond
         [(empty? stmts)
          (reverse (cons (make-bblock pending-block-name
+                                     (set-member? entry-names-set pending-block-name)
                                      (reverse pending-stmts/rev)
-                                     pending-jump-targets
-                                     #f)
+                                     pending-jump-targets)
                         bblocks))]
         [(leader? (first stmts))
          (loop (cons (make-bblock pending-block-name
+                                  (set-member? entry-names-set pending-block-name)
                                   (reverse pending-stmts/rev)
-                                  pending-jump-targets
-                                  #f)
+                                  pending-jump-targets)
                      bblocks)
                (label-name (first stmts))
                (list (first stmts))
@@ -80,10 +84,11 @@
                    (cons (first stmts) pending-stmts/rev))
                (if (jump? (first stmts))
                    (set-union (list->set (map (lambda (t)
-                                                (if (eq? t NEXT)
-                                                    (label-name (second stmts))
-                                                    t))
-                                              
+                                                (cond [(eq? t NEXT)
+                                                       (label-name (second stmts))]
+                                                      [(eq? t DYNAMIC-JUMP)
+                                                       DYNAMIC-JUMP]
+                                                      [else t]))
                                               (jump-targets (first stmts))))
                               pending-jump-targets)
                    pending-jump-targets)
