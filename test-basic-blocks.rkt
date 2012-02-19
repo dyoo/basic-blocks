@@ -27,7 +27,6 @@
                  (printf "hello world")
                  (printf "this is a test"))))
 
-
 (check-equal? (frac '(entry
                       (goto entry)))
               '((entry

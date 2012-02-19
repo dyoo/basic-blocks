@@ -13,7 +13,7 @@
 ;; Basic blocks
 (define-struct bblock (name  ;; symbol
                        stmts ;; (listof stmt)
-                       succs ;; (setof bblock DYNAMIC)
+                       succs ;; (setof target)
                        aux   ;; any
                        )
   #:mutable
@@ -52,12 +52,13 @@
     (let loop ([bblocks '()]
                [pending-block-name (label-name (first stmts))]
                [pending-stmts/rev (list (first stmts))]
+               [pending-jump-targets (set)]
                [stmts (rest stmts)])
       (cond
         [(empty? stmts)
          (reverse (cons (make-bblock pending-block-name
                                      (reverse pending-stmts/rev)
-                                     (set)
+                                     pending-jump-targets
                                      #f)
                         bblocks))]
         [(leader? (first stmts))
@@ -68,6 +69,7 @@
                      bblocks)
                (label-name (first stmts))
                (list (first stmts))
+               (set)
                (rest stmts))]
         
         [else
@@ -76,6 +78,15 @@
                ;; Omit dead labels.
                (if (label? (first stmts)) pending-stmts/rev 
                    (cons (first stmts) pending-stmts/rev))
+               (if (jump? (first stmts))
+                   (set-union (list->set (map (lambda (t)
+                                                (if (eq? t NEXT)
+                                                    (label-name (second stmts))
+                                                    t))
+                                              
+                                              (jump-targets (first stmts))))
+                              pending-jump-targets)
+                   pending-jump-targets)
                (rest stmts))]))))
 
   
