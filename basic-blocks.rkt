@@ -13,18 +13,17 @@
 ;; Basic blocks
 (define-struct bblock (name  ;; symbol
                        stmts ;; (listof stmt)
-                       preds ;; (listof bblock DYNAMIC)
-                       succs ;; (listof bblock DYNAMIC)
+                       succs ;; (setof bblock DYNAMIC)
                        aux   ;; any
                        )
-  #:mutable)
+  #:mutable
+  #:transparent)
 
 
 (define-struct next-jump ())
 (define-struct dynamic-jump ())
 (define NEXT (make-next-jump))
 (define DYNAMIC-JUMP (make-dynamic-jump))
-
 
 
 ;; fracture: (listof (U stmt label)) -> (listof bblock)
@@ -58,15 +57,13 @@
         [(empty? stmts)
          (reverse (cons (make-bblock pending-block-name
                                      (reverse pending-stmts/rev)
-                                     '()
-                                     '()
+                                     (set)
                                      #f)
                         bblocks))]
         [(leader? (first stmts))
          (loop (cons (make-bblock pending-block-name
                                   (reverse pending-stmts/rev)
-                                  '()
-                                  '()
+                                  (set)
                                   #f)
                      bblocks)
                (label-name (first stmts))
