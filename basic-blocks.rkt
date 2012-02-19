@@ -2,11 +2,11 @@
 
 (require racket/match 
          racket/set
-         racket/list
-         racket/shared)
+         racket/list)
+
 
 (provide NEXT
-         DYNAMIC-JUMP
+         DYNAMIC
          (struct-out bblock)
          fracture)
 
@@ -26,7 +26,7 @@
 (define-struct next-jump ())
 (define-struct dynamic-jump ())
 (define NEXT (make-next-jump))
-(define DYNAMIC-JUMP (make-dynamic-jump))
+(define DYNAMIC (make-dynamic-jump))
 
 
 ;; fracture: (listof (U stmt label)) -> (listof bblock)
@@ -86,8 +86,8 @@
                    (set-union (list->set (map (lambda (t)
                                                 (cond [(eq? t NEXT)
                                                        (label-name (second stmts))]
-                                                      [(eq? t DYNAMIC-JUMP)
-                                                       DYNAMIC-JUMP]
+                                                      [(eq? t DYNAMIC)
+                                                       DYNAMIC]
                                                       [else t]))
                                               (jump-targets (first stmts))))
                               pending-jump-targets)
@@ -119,7 +119,7 @@
        (define named-targets
          (filter (lambda (t)
                    (and (not (eq? t NEXT))
-                        (not (eq? t DYNAMIC-JUMP))))
+                        (not (eq? t DYNAMIC))))
                  targets))
        (cond [(member NEXT targets)
               (cond
@@ -173,12 +173,12 @@
      (cond [(symbol? target)
             (list target)]
            [else
-            (list DYNAMIC-JUMP)])]
+            (list DYNAMIC)])]
     [(list 'if condition 'goto target)
      (list (cond [(symbol? target)
                   target]
                  [else
-                  DYNAMIC-JUMP])
+                  DYNAMIC])
            NEXT)]
     [else
      (raise-type-error 'default-jump-targets "Statement with jump targets" x)]))

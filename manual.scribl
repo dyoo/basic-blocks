@@ -1,0 +1,6 @@
+#lang scribble/manual
+
+@title{basic-blocks: compute basic blocks from a list of statements and labels}
+
+@author["Danny Yoo" "dyoo@hashcollision.org"]
+

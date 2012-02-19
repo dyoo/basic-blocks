@@ -133,4 +133,27 @@
                                  #f
                                  '(end
                                    (goto (reg return)))
-                                 (set DYNAMIC-JUMP))))
+                                 (set DYNAMIC))))
+
+
+;; Check to see that #:entry-names is doing the right thing.
+(check-equal? (fracture '(entry-1
+                          (<- val (* n n))
+                          (goto (reg return))
+                          
+                          entry-2
+                          (<- val (sqrt n))
+                          (goto (reg return)))
+                        #:entry-names '(entry-1 entry-2))
+              (list (make-bblock 'entry-1
+                                 #t
+                                 '(entry-1
+                                   (<- val (* n n))
+                                   (goto (reg return)))
+                                 (set DYNAMIC))
+                    (make-bblock 'entry-2
+                                 #t
+                                 '(entry-2
+                                   (<- val (sqrt n))
+                                   (goto (reg return)))
+                                 (set DYNAMIC))))
