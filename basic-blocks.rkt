@@ -88,7 +88,7 @@
     
     (let loop ([bblocks '()]
                [pending-block-name (label-name (first stmts))]
-               [pending-stmts/rev (first stmts)]
+               [pending-stmts/rev (list (first stmts))]
                [stmts (rest stmts)])
       (cond
         [(empty? stmts)
@@ -106,7 +106,7 @@
                                   #f)
                      bblocks)
                (label-name (first stmts))
-               (first stmts)
+               (list (first stmts))
                (rest stmts))]
         
         [else
