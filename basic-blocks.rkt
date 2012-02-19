@@ -64,7 +64,7 @@
         [(leader? (first stmts))
          (loop (cons (make-bblock pending-block-name
                                   (reverse pending-stmts/rev)
-                                  (set)
+                                  pending-jump-targets
                                   #f)
                      bblocks)
                (label-name (first stmts))

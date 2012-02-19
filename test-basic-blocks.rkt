@@ -88,3 +88,22 @@
               [else
                #f]))
 
+
+(check-equal? (fracture '(entry
+                          (blah)
+                          (baz)
+                          (if something goto entry)
+                          consequent
+                          (now do something else)))
+              (list (make-bblock 'entry
+                                 '(entry
+                                   (blah)
+                                   (baz)
+                                   (if something goto entry))
+                                 (set 'entry 'consequent)
+                                 #f)
+                    (make-bblock 'consequent
+                                 '(consequent
+                                   (now do something else))
+                                 (set)
+                                 #f)))
