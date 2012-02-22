@@ -85,20 +85,28 @@
                ;; Omit dead labels.
                (if (label? (first stmts)) pending-stmts/rev 
                    (cons (first stmts) pending-stmts/rev))
-               (if (jump? (first stmts))
-                   (set-union (list->set (map (lambda (t)
-                                                (cond [(eq? t NEXT)
-                                                       (label-name (second stmts))]
-                                                      [(eq? t DYNAMIC)
-                                                       DYNAMIC]
+               (cond [(jump? (first stmts))
+                      (set-union (list->set (map (lambda (t)
+                                                   (cond [(eq? t NEXT)
+                                                          (label-name (second stmts))]
+                                                         [(eq? t DYNAMIC)
+                                                          DYNAMIC]
                                                       [else t]))
-                                              (jump-targets (first stmts))))
-                              pending-jump-targets)
-                   pending-jump-targets)
-               (if (and (jump? (first stmts))
-                        (memq NEXT (jump-targets (first stmts))))
-                   (label-name (second stmts))
-                   #f)
+                                                 (jump-targets (first stmts))))
+                                 pending-jump-targets)]
+                     [(and (not (null? (rest stmts)))
+                           (leader? (second stmts)))
+                      (set-union pending-jump-targets (set (label-name (second stmts))))]
+                     [else
+                      pending-jump-targets])
+               (cond [(and (jump? (first stmts))
+                           (memq NEXT (jump-targets (first stmts))))
+                      (label-name (second stmts))]
+                     [(and (not (jump? (first stmts)))
+                           (not (empty? (rest stmts)))
+                           (leader? (second stmts)))
+                      (label-name (second stmts))]
+                     [else #f])
                (rest stmts))]))))
 
   
