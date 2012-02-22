@@ -16,17 +16,16 @@
                        entry? ;; boolean
                        stmts  ;; (listof stmt)
                        succs  ;; (setof (U symbol DYNAMIC-JUMP))
+                       next-succ ;; (U #f symbol)
                        )
   #:transparent)
 
   
 
-
-
-(define-struct next-jump ())
-(define-struct dynamic-jump ())
-(define NEXT (make-next-jump))
-(define DYNAMIC (make-dynamic-jump))
+(define-struct next ())
+(define-struct dynamic ())
+(define NEXT (make-next))
+(define DYNAMIC (make-dynamic))
 
 
 ;; fracture: (listof (U stmt label)) -> (listof bblock)
@@ -57,23 +56,27 @@
                [pending-block-name (label-name (first stmts))]
                [pending-stmts/rev (list (first stmts))]
                [pending-jump-targets (set)]
+               [pending-next-succ #f]
                [stmts (rest stmts)])
       (cond
         [(empty? stmts)
          (reverse (cons (make-bblock pending-block-name
                                      (set-member? entry-names-set pending-block-name)
                                      (reverse pending-stmts/rev)
-                                     pending-jump-targets)
+                                     pending-jump-targets
+                                     pending-next-succ)
                         bblocks))]
         [(leader? (first stmts))
          (loop (cons (make-bblock pending-block-name
                                   (set-member? entry-names-set pending-block-name)
                                   (reverse pending-stmts/rev)
-                                  pending-jump-targets)
+                                  pending-jump-targets
+                                  pending-next-succ)
                      bblocks)
                (label-name (first stmts))
                (list (first stmts))
                (set)
+               #f
                (rest stmts))]
         
         [else
@@ -92,6 +95,10 @@
                                               (jump-targets (first stmts))))
                               pending-jump-targets)
                    pending-jump-targets)
+               (if (and (jump? (first stmts))
+                        (memq NEXT (jump-targets (first stmts))))
+                   (label-name (second stmts))
+                   #f)
                (rest stmts))]))))
 
   

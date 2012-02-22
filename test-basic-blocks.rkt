@@ -16,15 +16,15 @@
               (set))
 
 (check-equal? (frac '(entry
-                      (printf "hello world")))
+                      (printf "hello world 1")))
               '((entry
-                 (printf "hello world"))))
+                 (printf "hello world 1"))))
 
 (check-equal? (frac '(entry
-                       (printf "hello world")
+                       (printf "hello world 2")
                        (printf "this is a test")))
               '((entry
-                 (printf "hello world")
+                 (printf "hello world 2")
                  (printf "this is a test"))))
 
 (check-equal? (frac '(entry
@@ -101,12 +101,14 @@
                                    (blah)
                                    (baz)
                                    (if something goto entry))
-                                 (set 'entry 'consequent))
+                                 (set 'entry 'consequent)
+                                 'consequent)
                     (make-bblock 'consequent
                                  #f
                                  '(consequent
                                    (now do something else))
-                                 (set))))
+                                 (set)
+                                 #f)))
 
 
 (check-equal? (fracture '(entry
@@ -121,19 +123,22 @@
                                  #t
                                  '(entry
                                    (if (= n 0) goto end))
-                                 (set 'end 'consequent))
+                                 (set 'end 'consequent)
+                                 'consequent)
                     (make-bblock 'consequent
                                  #f
                                  '(consequent
                                    (<- acc (* acc n))
                                    (<- n (sub1 n))
                                    (goto entry))
-                                 (set 'entry))
+                                 (set 'entry)
+                                 #f)
                     (make-bblock 'end
                                  #f
                                  '(end
                                    (goto (reg return)))
-                                 (set DYNAMIC))))
+                                 (set DYNAMIC)
+                                 #f)))
 
 
 ;; Check to see that #:entry-names is doing the right thing.
@@ -150,10 +155,12 @@
                                  '(entry-1
                                    (<- val (* n n))
                                    (goto (reg return)))
-                                 (set DYNAMIC))
+                                 (set DYNAMIC)
+                                 #f)
                     (make-bblock 'entry-2
                                  #t
                                  '(entry-2
                                    (<- val (sqrt n))
                                    (goto (reg return)))
-                                 (set DYNAMIC))))
+                                 (set DYNAMIC)
+                                 #f)))
