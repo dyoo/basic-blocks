@@ -5,7 +5,8 @@
 
 (define (frac stmts)
   (define bblocks (fracture stmts))
-  (map bblock-stmts bblocks))
+  (map (lambda (b) (cons (bblock-name b) (bblock-stmts b)))
+       bblocks))
 
 
 (check-equal? (frac '(entry))
@@ -97,16 +98,14 @@
                           (now do something else)))
               (list (make-bblock 'entry
                                  #t
-                                 '(entry
-                                   (blah)
+                                 '((blah)
                                    (baz)
                                    (if something goto entry))
                                  (set 'entry 'consequent)
                                  'consequent)
                     (make-bblock 'consequent
                                  #f
-                                 '(consequent
-                                   (now do something else))
+                                 '((now do something else))
                                  (set)
                                  #f)))
 
@@ -121,22 +120,19 @@
                           (goto (reg return))))
               (list (make-bblock 'entry
                                  #t
-                                 '(entry
-                                   (if (= n 0) goto end))
+                                 '((if (= n 0) goto end))
                                  (set 'end 'consequent)
                                  'consequent)
                     (make-bblock 'consequent
                                  #f
-                                 '(consequent
-                                   (<- acc (* acc n))
+                                 '((<- acc (* acc n))
                                    (<- n (sub1 n))
                                    (goto entry))
                                  (set 'entry)
                                  #f)
                     (make-bblock 'end
                                  #f
-                                 '(end
-                                   (goto (reg return)))
+                                 '((goto (reg return)))
                                  (set DYNAMIC)
                                  #f)))
 
@@ -152,15 +148,13 @@
                         #:entry-names '(entry-1 entry-2))
               (list (make-bblock 'entry-1
                                  #t
-                                 '(entry-1
-                                   (<- val (* n n))
+                                 '((<- val (* n n))
                                    (goto (reg return)))
                                  (set DYNAMIC)
                                  #f)
                     (make-bblock 'entry-2
                                  #t
-                                 '(entry-2
-                                   (<- val (sqrt n))
+                                 '((<- val (sqrt n))
                                    (goto (reg return)))
                                  (set DYNAMIC)
                                  #f)))
@@ -253,8 +247,7 @@
 
  (list (make-bblock 'START
                     #t
-                    '(START
-                      (assign val
+                    '((assign val
                               (op make-compiled-procedure)
                               (label entry2)
                               (reg env))
@@ -263,8 +256,7 @@
                     #f)
        (make-bblock 'entry2
                     #t
-                    '(entry2
-                      (assign env (op compiled-procedure-env) (reg proc))
+                    '((assign env (op compiled-procedure-env) (reg proc))
                       (assign env
                               (op extend-environment)
                               (const (n))
@@ -290,16 +282,14 @@
                     'compiled-branch16)
        (make-bblock 'compiled-branch16
                     #f
-                    '(compiled-branch16
-                      (assign continue (label after-call15))
+                    '((assign continue (label after-call15))
                       (assign val (op compiled-procedure-entry) (reg proc))
                       (goto (reg val)))
                     (set DYNAMIC)
                     #f)
        (make-bblock 'primitive-branch17
                     #f
-                    '(primitive-branch17
-                      (assign val
+                    '((assign val
                               (op apply-primitive-procedure)
                               (reg proc)
                               (reg argl)))
@@ -307,7 +297,7 @@
                     'after-call15)
        (make-bblock 'after-call15
                     #t
-                    '(after-call15   ; val now contains result of (= n 1)
+                    '(; val now contains result of (= n 1)
                       (restore env)
                       (restore continue)
                       (test (op false?) (reg val))
@@ -316,15 +306,14 @@
                     'true-branch5)
        (make-bblock 'true-branch5
                     #f
-                    '(true-branch5  ; return 1
+                    '(; return 1
                       (assign val (const 1))
                       (goto (reg continue)))
                     (set DYNAMIC)
                     #f)
        (make-bblock 'false-branch4
                     #f
-                    '(false-branch4
-                      ;; compute and return (* (factorial (- n 1)) n)
+                    '(;; compute and return (* (factorial (- n 1)) n)
                       (assign proc (op lookup-variable-value) (const *) (reg env))
                       (save continue)
                       (save proc)   ; save * procedure

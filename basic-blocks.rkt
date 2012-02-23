@@ -54,7 +54,7 @@
     
     (let loop ([bblocks '()]
                [pending-block-name (label-name (first stmts))]
-               [pending-stmts/rev (list (first stmts))]
+               [pending-stmts/rev (list)]
                [pending-jump-targets (set)]
                [pending-next-succ #f]
                [stmts (rest stmts)])
@@ -74,7 +74,7 @@
                                   pending-next-succ)
                      bblocks)
                (label-name (first stmts))
-               (list (first stmts))
+               (list)
                (set)
                #f
                (rest stmts))]
