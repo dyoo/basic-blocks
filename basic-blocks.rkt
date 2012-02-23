@@ -47,6 +47,7 @@
                 (find/inject-leaders stmts entry-names jump? jump-targets
                                      label? label-name fresh-label)])
 
+    
     ;; leader?: stmt -> boolean
     ;; Returns true if the statement is a leader.
     (define (leader? stmt)
@@ -61,7 +62,7 @@
        [else
         (skip-till-leader (rest stmts))]))
 
-    
+    (filter-reachable
     (let loop ([bblocks '()]
                [pending-block-name (label-name (first stmts))]
                [pending-stmts/rev (list)]
@@ -124,7 +125,7 @@
                      ;; After a jump, skip till we hit a leader
                      (skip-till-leader (rest stmts))]
                     [else
-                     (rest stmts)]))]))))
+                     (rest stmts)]))])))))
 
   
 ;; Make sure we get a good list of statements for fracture.
@@ -166,20 +167,13 @@
                        (cons (first stmts-to-see) stmts-seen/rev)
                        (rest stmts-to-see))])]
              [else
-              (loop leaders
+              (loop (append named-targets leaders)
                     (cons (first stmts-to-see) stmts-seen/rev)
                     (rest stmts-to-see))])]
       [else
        (loop leaders 
              (cons (first stmts-to-see) stmts-seen/rev)
              (rest stmts-to-see))])))
-
-
-
-
-
-
-
 
 
 
