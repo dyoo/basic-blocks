@@ -60,6 +60,7 @@
         stmts]
        [else
         (skip-till-leader (rest stmts))]))
+
     
     (let loop ([bblocks '()]
                [pending-block-name (label-name (first stmts))]
@@ -68,62 +69,62 @@
                [pending-next-succ #f]
                [stmts (rest stmts)])
       (cond
-        [(empty? stmts)
-         (reverse (cons (make-bblock pending-block-name
-                                     (set-member? entry-names-set pending-block-name)
-                                     (reverse pending-stmts/rev)
-                                     pending-jump-targets
-                                     pending-next-succ)
-                        bblocks))]
-        [(leader? (first stmts))
-         (loop (cons (make-bblock pending-block-name
-                                  (set-member? entry-names-set pending-block-name)
-                                  (reverse pending-stmts/rev)
-                                  pending-jump-targets
-                                  pending-next-succ)
-                     bblocks)
-               (label-name (first stmts))
-               (list)
-               (set)
-               #f
-               (rest stmts))]
-        
-        [else
-         (loop bblocks 
-               pending-block-name 
-               ;; Omit dead labels.
-               (if (label? (first stmts))
-                   pending-stmts/rev 
-                   (cons (first stmts) pending-stmts/rev))
-               (cond [(jump? (first stmts))
-                      (set-union (list->set (map (lambda (t)
-                                                   (cond [(eq? t NEXT)
-                                                          (label-name (second stmts))]
-                                                         [(eq? t DYNAMIC)
-                                                          DYNAMIC]
-                                                      [else t]))
-                                                 (jump-targets (first stmts))))
-                                 pending-jump-targets)]
-                     [(and (not (null? (rest stmts)))
-                           (leader? (second stmts)))
-                      (set-union pending-jump-targets (set (label-name (second stmts))))]
-                     [else
-                      pending-jump-targets])
-               (cond [(and (jump? (first stmts))
-                           (memq NEXT (jump-targets (first stmts))))
-                      (label-name (second stmts))]
-                     [(and (not (jump? (first stmts)))
-                           (not (empty? (rest stmts)))
-                           (leader? (second stmts)))
-                      (label-name (second stmts))]
-                     [else #f])
-               
-               (cond [(and (jump? (first stmts))
-                           (not (memq NEXT (jump-targets (first stmts)))))
-                      ;; After a jump, skip till we hit a leader
-                      (skip-till-leader (rest stmts))]
-                      [else
-                       (rest stmts)]))]))))
+       [(empty? stmts)
+        (reverse (cons (make-bblock pending-block-name
+                                    (set-member? entry-names-set pending-block-name)
+                                    (reverse pending-stmts/rev)
+                                    pending-jump-targets
+                                    pending-next-succ)
+                       bblocks))]
+       [(leader? (first stmts))
+        (loop (cons (make-bblock pending-block-name
+                                 (set-member? entry-names-set pending-block-name)
+                                 (reverse pending-stmts/rev)
+                                 pending-jump-targets
+                                 pending-next-succ)
+                    bblocks)
+              (label-name (first stmts))
+              (list)
+              (set)
+              #f
+              (rest stmts))]
+       
+       [else
+        (loop bblocks 
+              pending-block-name 
+              ;; Omit dead labels.
+              (if (label? (first stmts))
+                  pending-stmts/rev 
+                  (cons (first stmts) pending-stmts/rev))
+              (cond [(jump? (first stmts))
+                     (set-union (list->set (map (lambda (t)
+                                                  (cond [(eq? t NEXT)
+                                                         (label-name (second stmts))]
+                                                        [(eq? t DYNAMIC)
+                                                         DYNAMIC]
+                                                        [else t]))
+                                                (jump-targets (first stmts))))
+                                pending-jump-targets)]
+                    [(and (not (null? (rest stmts)))
+                          (leader? (second stmts)))
+                     (set-union pending-jump-targets (set (label-name (second stmts))))]
+                    [else
+                     pending-jump-targets])
+              (cond [(and (jump? (first stmts))
+                          (memq NEXT (jump-targets (first stmts))))
+                     (label-name (second stmts))]
+                    [(and (not (jump? (first stmts)))
+                          (not (empty? (rest stmts)))
+                          (leader? (second stmts)))
+                     (label-name (second stmts))]
+                    [else #f])
+              
+              (cond [(and (jump? (first stmts))
+                          (not (memq NEXT (jump-targets (first stmts)))))
+                     ;; After a jump, skip till we hit a leader
+                     (skip-till-leader (rest stmts))]
+                    [else
+                     (rest stmts)]))]))))
 
   
 ;; Make sure we get a good list of statements for fracture.
@@ -172,6 +173,47 @@
        (loop leaders 
              (cons (first stmts-to-see) stmts-seen/rev)
              (rest stmts-to-see))])))
+
+
+
+
+
+
+
+
+
+
+
+;; Given a sequence of basic blocks, returns the sequence of those
+;; reachable by starting at an entry block and jumping.  Basic DFS.
+(define (filter-reachable bblocks)
+  (define ht (make-hasheq))
+  (for ([b bblocks])
+    (hash-set! ht (bblock-name b) b))
+  
+  (define visited (make-hasheq))  
+  (define (dfs queue)
+    (cond
+     [(empty? queue)
+      (void)]
+     [(hash-has-key? visited (first queue))
+      (dfs (rest queue))]
+     [else
+      (hash-set! visited (first queue) #t)
+      (dfs (append (for/list ([neighbor (bblock-succs (hash-ref ht (first queue)))]
+                              #:when (and (not (eq? neighbor DYNAMIC))
+                                          (not (hash-has-key? visited neighbor))))
+                             neighbor)
+                   (rest queue)))]))
+  (dfs (for/list ([b bblocks]
+                  #:when (bblock-entry? b))
+                 (bblock-name b)))
+
+
+  (for/list ([b bblocks]
+             #:when (hash-has-key? visited (bblock-name b)))
+            b))
+
 
 
  

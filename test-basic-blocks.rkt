@@ -171,8 +171,7 @@
 ;; Big example from:
 ;; http://mitpress.mit.edu/sicp/full-text/book/book-Z-H-35.html#%_sec_5.5.5
 ;;
-(check-equal?
- (fracture
+(define factorial-snippet
   '(START
     ;; construct the procedure and skip over code for the procedure body
     (assign val
@@ -223,8 +222,94 @@
     ;; compute (factorial (- n 1)), which is the other argument for *
     (assign proc
             (op lookup-variable-value) (const factorial) (reg env))
-    (save proc))  ; save factorial procedure
+    (save proc)  ; save factorial procedure
+    ;; compute (- n 1), which is the argument for factorial
+    (assign proc (op lookup-variable-value) (const -) (reg env))
+    (assign val (const 1))
+    (assign argl (op list) (reg val))
+    (assign val (op lookup-variable-value) (const n) (reg env))
+    (assign argl (op cons) (reg val) (reg argl))
+    (test (op primitive-procedure?) (reg proc))
+    (branch (label primitive-branch8))
+    compiled-branch7
+    (assign continue (label after-call6))
+    (assign val (op compiled-procedure-entry) (reg proc))
+    (goto (reg val))
+    primitive-branch8
+    (assign val (op apply-primitive-procedure) (reg proc) (reg argl))
 
+    after-call6   ; val now contains result of (- n 1)
+    (assign argl (op list) (reg val))
+    (restore proc) ; restore factorial
+    ;; apply factorial
+    (test (op primitive-procedure?) (reg proc))
+    (branch (label primitive-branch11))
+    compiled-branch10
+    (assign continue (label after-call9))
+    (assign val (op compiled-procedure-entry) (reg proc))
+    (goto (reg val))
+    primitive-branch11
+    (assign val (op apply-primitive-procedure) (reg proc) (reg argl))
+
+    after-call9      ; val now contains result of (factorial (- n 1))
+    (restore argl) ; restore partial argument list for *
+    (assign argl (op cons) (reg val) (reg argl))
+    (restore proc) ; restore *
+    (restore continue)
+    ;; apply * and return its value
+    (test (op primitive-procedure?) (reg proc))
+    (branch (label primitive-branch14))
+    compiled-branch13
+    ;; note that a compound procedure here is called tail-recursively
+    (assign val (op compiled-procedure-entry) (reg proc))
+    (goto (reg val))
+    primitive-branch14
+    (assign val (op apply-primitive-procedure) (reg proc) (reg argl))
+    (goto (reg continue))
+    after-call12
+    after-if3
+    after-lambda1
+    ;; assign the procedure to the variable factorial
+    (perform
+     (op define-variable!) (const factorial) (reg val) (reg env))
+    (assign val (const ok))))
+
+
+(fracture
+  factorial-snippet
+  #:entry-names '(START entry2 after-call15)
+
+  #:fresh-label (let ([counter 0])
+                  (lambda ()
+                    (set! counter (add1 counter))
+                    (string->symbol (format "l~a" counter))))
+  #:label? symbol?
+  #:label-name identity
+  #:jump? (lambda (stmt)
+            (match stmt
+              [(list 'goto place) #t]
+              [(list 'branch place) #t]
+              [else #f]))
+  #:jump-targets (lambda (a-jump)
+                   (match a-jump
+                     [(list 'goto place)
+                      (match place
+                        [(list 'label name)
+                         (list name)]
+                        [else
+                         (list DYNAMIC)])]
+                     [(list 'branch place)
+                      (match place
+                        [(list 'label name)
+                         (list name NEXT)]
+                        [else
+                         (list DYNAMIC NEXT)])])))
+
+
+
+#;(check-equal?
+ (fracture
+  factorial-snippet
   #:entry-names '(START entry2 after-call15)
 
   #:fresh-label (let ([counter 0])
