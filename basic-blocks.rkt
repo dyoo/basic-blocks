@@ -51,6 +51,15 @@
     ;; Returns true if the statement is a leader.
     (define (leader? stmt)
       (and (label? stmt) (set-member? leaders (label-name stmt))))
+
+    ;; Skip statements until we hit the next leader.
+    (define (skip-till-leader stmts)
+      (cond
+       [(empty? stmts) '()]
+       [(leader? (first stmts))
+        stmts]
+       [else
+        (skip-till-leader (rest stmts))]))
     
     (let loop ([bblocks '()]
                [pending-block-name (label-name (first stmts))]
@@ -83,7 +92,8 @@
          (loop bblocks 
                pending-block-name 
                ;; Omit dead labels.
-               (if (label? (first stmts)) pending-stmts/rev 
+               (if (label? (first stmts))
+                   pending-stmts/rev 
                    (cons (first stmts) pending-stmts/rev))
                (cond [(jump? (first stmts))
                       (set-union (list->set (map (lambda (t)
@@ -107,7 +117,13 @@
                            (leader? (second stmts)))
                       (label-name (second stmts))]
                      [else #f])
-               (rest stmts))]))))
+               
+               (cond [(and (jump? (first stmts))
+                           (not (memq NEXT (jump-targets (first stmts)))))
+                      ;; After a jump, skip till we hit a leader
+                      (skip-till-leader (rest stmts))]
+                      [else
+                       (rest stmts)]))]))))
 
   
 ;; Make sure we get a good list of statements for fracture.
