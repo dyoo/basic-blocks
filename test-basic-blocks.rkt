@@ -57,6 +57,15 @@
               '((entry
                  (goto entry))))
 
+(check-equal? (frac '(entry
+                      (goto entry)
+                      (dead-command)))
+              '((entry
+                 (goto entry))))
+                    
+
+
+
 
 
 (check-true (match (frac '(entry
