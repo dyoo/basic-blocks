@@ -15,7 +15,7 @@
 (define-struct bblock (name   ;; symbol
                        entry? ;; boolean
                        stmts  ;; (listof stmt)
-                       succs  ;; (setof (U symbol DYNAMIC-JUMP))
+                       succs  ;; (setof (U symbol DYNAMIC))
                        next-succ ;; (U #f symbol)
                        )
   #:transparent)
