@@ -386,7 +386,8 @@
                       (test (op primitive-procedure?) (reg proc))
                       (branch (label primitive-branch8)))
                     (set 'primitive-branch8 'compiled-branch7)
-                    #f)
+                    'compiled-branch7)
+
        (make-bblock 'compiled-branch7
                     #f
                     '((assign continue (label after-call6))
@@ -436,7 +437,7 @@
                       (branch (label primitive-branch14)))
                     (set 'primitive-branch14 'compiled-branch13)
                     'compiled-branch13)
-       (make-bblock 'compiled-branch-13
+       (make-bblock 'compiled-branch13
                     #f
                     '(;; note that a compound procedure here is called tail-recursively
                       (assign val (op compiled-procedure-entry) (reg proc))
