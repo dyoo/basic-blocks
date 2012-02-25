@@ -275,35 +275,6 @@
     (assign val (const ok))))
 
 
-(fracture
-  factorial-snippet
-  #:entry-names '(START entry2 after-call15)
-
-  #:fresh-label (let ([counter 0])
-                  (lambda ()
-                    (set! counter (add1 counter))
-                    (string->symbol (format "l~a" counter))))
-  #:label? symbol?
-  #:label-name identity
-  #:jump? (lambda (stmt)
-            (match stmt
-              [(list 'goto place) #t]
-              [(list 'branch place) #t]
-              [else #f]))
-  #:jump-targets (lambda (a-jump)
-                   (match a-jump
-                     [(list 'goto place)
-                      (match place
-                        [(list 'label name)
-                         (list name)]
-                        [else
-                         (list DYNAMIC)])]
-                     [(list 'branch place)
-                      (match place
-                        [(list 'label name)
-                         (list name NEXT)]
-                        [else
-                         (list DYNAMIC NEXT)])])))
 
 
 
@@ -312,10 +283,10 @@
   factorial-snippet
   #:entry-names '(START entry2 after-call15)
 
-  #:fresh-label (let ([counter 0])
-                  (lambda ()
-                    (set! counter (add1 counter))
-                    (string->symbol (format "l~a" counter))))
+  #:fresh-block-name (let ([counter 0])
+                       (lambda ()
+                       (set! counter (add1 counter))
+                       (string->symbol (format "l~a" counter))))
   #:label? symbol?
   #:label-name identity
   #:jump? (lambda (stmt)

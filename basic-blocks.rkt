@@ -8,7 +8,8 @@
 (provide NEXT
          DYNAMIC
          (struct-out bblock)
-         fracture)
+         fracture
+         jump-type?)
 
 
 ;; Basic blocks
@@ -21,11 +22,19 @@
   #:transparent)
 
 
-
-(define-struct next ())
-(define-struct dynamic ())
+(define-struct jump-type ())
+(define-struct (next jump-type) ())
+(define-struct (dynamic jump-type) ())
 (define NEXT (make-next))
 (define DYNAMIC (make-dynamic))
+
+
+;; A label is also defined to be a Label.  This is an internal
+;; definition that won't be exposed outside, since it's only used for
+;; fresh labels named with fresh-block-names.
+(define-struct Label (name))
+
+
 
 
 ;; fracture: (listof (U stmt label)) -> (listof bblock)
@@ -33,11 +42,22 @@
 ;; returns a list of bblocks.
 (define (fracture stmts
                   #:entry-names (entry-names '())
-                  #:fresh-label (fresh-label default-fresh-label)
-                  #:label? (label? default-label?)
-                  #:label-name (label-name default-label-name)
+                  #:fresh-block-name (fresh-block-name default-fresh-block-name)
+                  #:label? (external-label? default-label?)
+                  #:label-name (external-label-name default-label-name)
                   #:jump? (jump? default-jump?)
                   #:jump-targets (jump-targets default-jump-targets))
+
+  (define (label? x)
+    (or (Label? x)
+        (external-label? x)))
+
+  (define (label-name x)
+    (if (Label? x)
+        (Label-name x)
+        (external-label-name x)))
+  
+  
   (check-good-stmts! stmts label?)
   
   
@@ -45,7 +65,7 @@
   (let-values ([(entry-names-set) (list->set (cons (label-name (first stmts)) entry-names))]
                [(leaders stmts)
                 (find/inject-leaders stmts entry-names jump? jump-targets
-                                     label? label-name fresh-label)])
+                                     label? label-name fresh-block-name)])
     
     
     ;; leader?: stmt -> boolean
@@ -140,7 +160,7 @@
 
 ;; find/inject-leaders: -> (values (setof symbol) (listof stmt))
 ;; Preprocesses the statements and computes leaders, and injects them if necessary.
-(define (find/inject-leaders stmts entry-names jump? jump-targets label? label-name fresh-label)
+(define (find/inject-leaders stmts entry-names jump? jump-targets label? label-name fresh-block-name)
   (let loop ([leaders (cons (label-name (first stmts)) entry-names)]
              [stmts-seen/rev (list (first stmts))]
              [stmts-to-see (rest stmts)])
@@ -158,7 +178,7 @@
               (cond
                 [(or (empty? (rest stmts-to-see))
                      (not (label? (second stmts-to-see))))
-                 (define fresh-stmt (fresh-label))
+                 (define fresh-stmt (make-Label (fresh-block-name)))
                  (loop (append named-targets (cons (label-name fresh-stmt) leaders))
                        (cons fresh-stmt (cons (first stmts-to-see) stmts-seen/rev))
                        (rest stmts-to-see))]
@@ -223,7 +243,7 @@
     [else
      (raise-type-error 'default-label-name "symbol" a-label)]))
 
-(define (default-fresh-label)
+(define (default-fresh-block-name)
   (gensym 'label))
 
 (define (default-jump? x)
