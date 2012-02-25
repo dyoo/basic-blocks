@@ -96,7 +96,7 @@ For example:
 
 Note that @racket[another-entry-point] does not occur in the outputted set
 of basic blocks, because @racket[fracture] could not find a path from
-any basic block to it.
+any entry to it.
 
 By providing a @racket[#:entry-names], we can convince @racket[fracture]
 to maintain the block starting with @racket[another-entry-point]:
