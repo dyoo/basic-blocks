@@ -29,7 +29,7 @@ blocks}.  As a quick example:
 (bblock-succs (first a-block))
 ]
 
-See @secref["larger example"] for a more substantial example use of
+See @secref["larger example"] for a more substantial use of
 this library.
 
 
@@ -52,7 +52,7 @@ explicitly passed to @racket[fracture] using @racket[#:entry-names].
 @racket[bblock] also stores what blocks are successors of a given
 block; the set of these jump targets can be accessed with
 @racket[bblock-succs].  If the block has a dynamic (computed) jump,
-then @racket[bblock-succs] contains the value @racket[DYNAMIC].
+then @racket[DYNAMIC] is a member of @racket[bblock-succs].
 
 For convenience, if the block ends with a conditional jump, then
 @racket[bblock-next-succ] refers to the block that follows immediately
@@ -66,9 +66,8 @@ next.
                    [#:label? label? (any/c -> boolean) default-label?]
                    [#:label-name label-name (label -> symbol) default-label-name]
                    [#:jump? jump? (any/c -> boolean) default-jump?]
-                   [#:jump-targets jump-target (jump -> (listof (or/c symbol? GOTO DYNAMIC)) default-jump-targets)]
-                   [#:fresh-block-name fresh-block-name (-> symbol) (lambda () (gensym 'label))]
-)
+                   [#:jump-targets jump-target (jump -> (listof (or/c symbol? GOTO DYNAMIC))) default-jump-targets]
+                   [#:fresh-block-name fresh-block-name (-> symbol) default-fresh-block-name])
          (listof bblock)]{
 
 Computes the list of basic blocks from a sequence of statements and
@@ -78,8 +77,8 @@ customize what it means to be a statement or a jump.  It produces a
 list of @racket[bblock] structures.
 
 
-The very first statement of @racket[stmts] must be a label, and is
-treated as an entry.  It's important to provide a
+The very first statement of @racket[stmts] must be a label; it's assumed
+to be the central entry point.  It's important to provide a
 @racket[#:entry-names] that names all entry points we care about.
 Although @racket[fracture] does not do much optimization, it does omit
 blocks that can not be reached by any entry-point basic block.
@@ -89,16 +88,23 @@ For example:
 (fracture '(entry
             (hello world)
             (goto done)
-            another-block
+            another-entry-point
             (this is another block)
             done
-            (bye)))
+            (bye)))]
 
-(fracture #:entry-names '(another-block)
+Note that @racket[another-entry-point] does not occur in the outputted set
+of basic blocks, because @racket[fracture] could not find a path from
+any basic block to it.
+
+By providing a @racket[#:entry-names], we can convince @racket[fracture]
+to maintain the block starting with @racket[another-entry-point]:
+@interaction[#:eval my-evaluator
+(fracture #:entry-names '(another-entry-point)
           '(entry
             (hello world)
             (goto done)
-            another-block
+            another-entry-point
             (this is another block)
             done
             (bye)))
@@ -160,7 +166,7 @@ jump has a runtime-dependent target.
 @defthing[DYNAMIC jump-target]{Indicates a jump to a runtime-specific statement.}
 
 
-By default, @racket[#:jump-targets]:
+By default, @racket[#:jump-targets] is:
 @racketblock[
 (define (default-jump-targets x)
   (match x
@@ -182,7 +188,7 @@ By default, @racket[#:jump-targets]:
 
 Under some situations, @racket[fracture] may need to synthesize a
 fresh name for a basic block.  It uses @racket[#:fresh-block-name] to
-generate the name.  By default, this is:
+generate the name.  By default, @racket[#:fresh-block-name] is:
 @racketblock[
 (define (default-fresh-block-name)
   (gensym 'label))
