@@ -437,6 +437,7 @@
                       (branch (label primitive-branch14)))
                     (set 'primitive-branch14 'compiled-branch13)
                     'compiled-branch13)
+       
        (make-bblock 'compiled-branch13
                     #f
                     '(;; note that a compound procedure here is called tail-recursively
