@@ -13,7 +13,7 @@
 
 @section{Introduction}
 
-This package takes a list of instructions and labels, and breaks them
+This package takes a list of statements and labels, and breaks them
 down into @link["http://en.wikipedia.org/wiki/Basic_block"]{basic
 blocks}.  As a quick example:
 
