@@ -278,10 +278,10 @@
 
 
 
-#;(check-equal?
+(check-equal?
  (fracture
   factorial-snippet
-  #:entry-names '(START entry2 after-call15)
+  #:entry-names '(START entry2 after-call15 after-call6 after-call9)
 
   #:fresh-block-name (let ([counter 0])
                        (lambda ()
@@ -312,34 +312,22 @@
 
  (list (make-bblock 'START
                     #t
-                    '((assign val
-                              (op make-compiled-procedure)
-                              (label entry2)
-                              (reg env))
+                    '((assign val (op make-compiled-procedure) (label entry2) (reg env))
                       (goto (label after-lambda1)))
                     (set 'after-lambda1)
                     #f)
        (make-bblock 'entry2
                     #t
                     '((assign env (op compiled-procedure-env) (reg proc))
-                      (assign env
-                              (op extend-environment)
-                              (const (n))
-                              (reg argl)
-                              (reg env))
+                      (assign env (op extend-environment) (const (n)) (reg argl) (reg env))
                       ;; begin actual procedure body
                       (save continue)
                       (save env)
                       ;; compute (= n 1)
-                      (assign proc
-                              (op lookup-variable-value)
-                              (const =)
-                              (reg env))
+                      (assign proc (op lookup-variable-value) (const =) (reg env))
                       (assign val (const 1))
                       (assign argl (op list) (reg val))
-                      (assign val (op lookup-variable-value)
-                              (const n)
-                              (reg env))
+                      (assign val (op lookup-variable-value) (const n) (reg env))
                       (assign argl (op cons) (reg val) (reg argl))
                       (test (op primitive-procedure?) (reg proc))
                       (branch (label primitive-branch17)))
@@ -387,9 +375,87 @@
                       (save argl)   ; save partial argument list for *
 
                       ;; compute (factorial (- n 1)), which is the other argument for *
-                      (assign proc
-                              (op lookup-variable-value) (const factorial) (reg env))
-                      (save proc))
+                      (assign proc (op lookup-variable-value) (const factorial) (reg env))
+                      (save proc)
+                      ;; compute (- n 1), which is the argument for factorial
+                      (assign proc (op lookup-variable-value) (const -) (reg env))
+                      (assign val (const 1))
+                      (assign argl (op list) (reg val))
+                      (assign val (op lookup-variable-value) (const n) (reg env))
+                      (assign argl (op cons) (reg val) (reg argl))
+                      (test (op primitive-procedure?) (reg proc))
+                      (branch (label primitive-branch8)))
+                    (set 'primitive-branch8 'compiled-branch7)
+                    #f)
+       (make-bblock 'compiled-branch7
+                    #f
+                    '((assign continue (label after-call6))
+                      (assign val (op compiled-procedure-entry) (reg proc))
+                      (goto (reg val)))
+                    (set DYNAMIC)
+                    #f)
+
+       (make-bblock 'primitive-branch8
+                    #f
+                    '((assign val (op apply-primitive-procedure) (reg proc) (reg argl)))
+                    (set 'after-call6)
+                    'after-call6)
+
+       (make-bblock 'after-call6
+                    #t
+                    '((assign argl (op list) (reg val))
+                      (restore proc) ; restore factorial
+                      ;; apply factorial
+                      (test (op primitive-procedure?) (reg proc))
+                      (branch (label primitive-branch11)))
+                    (set 'primitive-branch11 'compiled-branch10)
+                    'compiled-branch10)
+
+       (make-bblock 'compiled-branch10
+                    #f
+                    '((assign continue (label after-call9))
+                      (assign val (op compiled-procedure-entry) (reg proc))
+                      (goto (reg val)))
+                    (set DYNAMIC)
+                    #f)
+
+       (make-bblock 'primitive-branch11
+                    #f
+                    '((assign val (op apply-primitive-procedure) (reg proc) (reg argl)))
+                    (set 'after-call9)
+                    'after-call9)
+
+       (make-bblock 'after-call9
+                    #t
+                    '((restore argl) ; restore partial argument list for *
+                      (assign argl (op cons) (reg val) (reg argl))
+                      (restore proc) ; restore *
+                      (restore continue)
+                      ;; apply * and return its value
+                      (test (op primitive-procedure?) (reg proc))
+                      (branch (label primitive-branch14)))
+                    (set 'primitive-branch14 'compiled-branch13)
+                    'compiled-branch13)
+       (make-bblock 'compiled-branch-13
+                    #f
+                    '(;; note that a compound procedure here is called tail-recursively
+                      (assign val (op compiled-procedure-entry) (reg proc))
+                      (goto (reg val)))
+                    (set DYNAMIC)
+                    #f)
+       (make-bblock 'primitive-branch14
+                    #f
+                    '((assign val (op apply-primitive-procedure) (reg proc) (reg argl))
+                      (goto (reg continue)))
+                    (set DYNAMIC)
+                    #f)
+
+       (make-bblock 'after-lambda1
+                    #f
+                    ;; assign the procedure to the variable factorial
+                    '((perform (op define-variable!) (const factorial) (reg val) (reg env))
+                      (assign val (const ok)))
                     (set)
                     #f)))
+                   
 
